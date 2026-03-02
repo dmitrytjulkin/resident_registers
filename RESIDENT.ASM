@@ -8,7 +8,9 @@ Start:
 	push VIDEOSEG
 	pop es
 
-	mov ax, 2345h
+;	divider db 10h
+
+	mov ax, 234Bh
 	mov bx, 5051h
 	mov cx, 6969h
 	mov dx, 9999h
@@ -33,8 +35,16 @@ PrintRegs	proc
 	pop bx
 	mov ax, bx
 	push bx
-	mov bx, 50h
+	mov bx, 0A0h
 	call PrintRegVal		;printing bx
+
+	mov ax, cx
+	mov bx, 140h
+	call PrintRegVal		;printing cx
+
+	mov ax, dx
+	mov bx, 1E0h
+	call PrintRegVal		;printing dx
 
 	pop bx ax
 
@@ -47,10 +57,10 @@ PrintRegs	proc
 ;Its printing at es:[bx].
 ;Entry: AX
 ;Exit: -
-;Destr: ...
+;Destr: -
 ;_____________________________________________________________
 PrintRegVal	proc
-	push ax bx cx di bp 
+	push ax bx cx dx di bp 
 	mov cx, 4h			;cycle counter
 	mov di, 10h			;di keeps divider
 	xor bp, bp
@@ -62,7 +72,14 @@ printing_reg_val:
 
 	push ax
 	mov ax, dx
+	cmp ax, 09h
+	ja digit
 	add ax, "0"
+	jmp letter
+	digit:
+	add ax, "A"
+	sub ax, 0Ah
+	letter:
 	mov ah, 73h
 	mov es:[bx], ax
 	sub bx, 2
@@ -70,10 +87,11 @@ printing_reg_val:
 
 	loop printing_reg_val
 
-	pop bp di cx bx ax
+	pop bp di dx cx bx ax
 
 	ret
 	endp
+;_____________________________________________________________
 ;_____________________________________________________________
 
 end	Start
