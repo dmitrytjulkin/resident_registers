@@ -1,0 +1,126 @@
+Turbo Assembler	 Version 4.1	    03/02/26 16:42:38	    Page 1
+resident.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3				     org 100h
+      4
+      5	      =B800		     VIDEOSEG	     equ 0b800h
+      6
+      7	0100			     Start:
+      8	0100  50 55 8B EC C7 46	02+	     push VIDEOSEG
+      9	      B800 5D
+     10	010A  07			     pop es
+     11
+     12	010B  B8 2345			     mov ax, 2345h
+     13	010E  BB 5051			     mov bx, 5051h
+     14	0111  B9 6969			     mov cx, 6969h
+     15	0114  BA 9999			     mov dx, 9999h
+     16	0117  E8 0005			     call PrintRegs
+     17
+     18	011A  B8 4C00			     mov ax, 4c00h
+     19	011D  CD 21			     int 21h
+     20				     ;_____________________________________________________________
+     21
+     22				     ;__PRINTREGS__
+     23				     ;Printing values of all registers
+     24				     ;Entry: all registers
+     25				     ;Exit: -
+     26				     ;Destr: -
+     27				     ;_____________________________________________________________
+     28	011F			     PrintRegs	     proc
+     29	011F  50 53			     push ax bx
+     30
+     31	0121  BB 0000			     mov bx, 00h
+     32	0124  E8 000D			     call PrintRegVal		     ;printing ax
+     33
+     34	0127  5B			     pop bx
+     35	0128  8B C3			     mov ax, bx
+     36	012A  53			     push bx
+     37	012B  BB 0050			     mov bx, 50h
+     38	012E  E8 0003			     call PrintRegVal		     ;printing bx
+     39
+     40	0131  5B 58			     pop bx ax
+     41
+     42	0133  C3			     ret
+     43	0134				     endp
+     44				     ;_____________________________________________________________
+     45
+     46				     ;__PRINTREGVAL__
+     47				     ;The function is printing actual value of register, that stored in	AX.
+     48				     ;Its printing at es:[bx].
+     49				     ;Entry: AX
+     50				     ;Exit: -
+     51				     ;Destr: ...
+     52				     ;_____________________________________________________________
+     53	0134			     PrintRegVal     proc
+     54	0134  50 53 51 57 55		     push ax bx	cx di bp
+     55	0139  B9 0004			     mov cx, 4h			     ;cycle counter
+     56	013C  BF 0010			     mov di, 10h		     ;di keeps divider
+     57	013F  33 ED			     xor bp, bp
+Turbo Assembler	 Version 4.1	    03/02/26 16:42:38	    Page 2
+resident.asm
+
+
+
+     58	0141  83 C3 08			     add bx, 2*4h
+     59
+     60	0144			     printing_reg_val:
+     61	0144  33 D2			     xor dx, dx
+     62	0146  F7 F7			     div di
+     63
+     64	0148  50			     push ax
+     65	0149  8B C2			     mov ax, dx
+     66	014B  05 0030			     add ax, "0"
+     67	014E  B4 73			     mov ah, 73h
+     68	0150  26: 89 07			     mov es:[bx], ax
+     69	0153  83 EB 02			     sub bx, 2
+     70	0156  58			     pop ax
+     71
+     72	0157  E2 EB			     loop printing_reg_val
+     73
+     74	0159  5D 5F 59 5B 58		     pop bp di cx bx ax
+     75
+     76	015E  C3			     ret
+     77	015F				     endp
+     78				     ;_____________________________________________________________
+     79
+     80				     end     Start
+Turbo Assembler	 Version 4.1	    03/02/26 16:42:38	    Page 3
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/02/26"
+??FILENAME			  Text	 "resident"
+??TIME				  Text	 "16:42:38"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 RESIDENT
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+PRINTING_REG_VAL		  Near	 DGROUP:0144
+PRINTREGS			  Near	 DGROUP:011F
+PRINTREGVAL			  Near	 DGROUP:0134
+START				  Near	 DGROUP:0100
+VIDEOSEG			  Number B800
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  015F Word	  Public  CODE
+
