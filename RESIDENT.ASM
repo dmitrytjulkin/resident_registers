@@ -3,17 +3,26 @@
 org 100h
 
 VIDEOSEG	equ 0b800h
-REL_ADDR	equ 160*5 + 80
-SYMB_COLOR	equ 70h				;= black on white
-SCAN_CODE	equ 0fh				;= tab
+FRAME_ADDR	equ 80h*5 + 40h
+SYMB_COLOR	equ 070h			;= black on white
+SCAN_CODE	equ 00Fh			;= tab
+NEIGHB_BY_VERT	equ 0A0h
+FRAME_WIDTH	equ 009h
+
+HOR_BRDR 	equ 0CDh
+VER_BRDR	equ 0BAh
+TL_BRDR		equ 0C9h
+TR_BRDR		equ 0BBh
+BL_BRDR		equ 0C8h
+BR_BRDR		equ 0BCh
+SPACE		equ 020h
 
 Start:
 	mov ax, 3509h				;es:bx = address of int handler
 	int 21h
 
 	mov OldOffset, bx
-	mov bx, es
-	mov OldSegment, bx			;save es:bx as variables
+	mov OldSegment, es			;save es:bx as variables
 
 	push 0
 	pop es						;es = 0
@@ -32,6 +41,7 @@ Start:
 	mov dx, offset EndOfProgram	;dx shows the size of resident mem
 	shr dx, 4					;dividing by paragraphs
 	inc dx						;	with rounding up
+	add dx, 10h
 
 	int 21h
 
@@ -50,16 +60,19 @@ DoUntilEscape	proc
 ;	mov cs:[reg_arr + 22], cs
 ;	mov cs:[reg_arr + 24], ip	;//TODO idea to add flags
 
+
 	mov ax, VIDEOSEG
 	mov es, ax
-	mov bx, REL_ADDR			;set address to start printing
+	mov bx, FRAME_ADDR			;set address to start printing
 
 	in al, 60h
 
 	cmp al, SCAN_CODE
 	jne skip_printing
+
+	mov ah, SYMB_COLOR
 	call PrintFrame
-	call PrintRegs				;printing regs value
+	call PrintAllRegs			;printing regs value
 
 skip_printing:
 	or al, 80h
@@ -77,71 +90,114 @@ skip_printing:
 	mov si, cs:[reg_arr + 8]
 	mov di, cs:[reg_arr + 10]
 	mov bp, cs:[reg_arr + 12]
-	mov sp, cs:[reg_arr + 14]
+;	mov sp, cs:[reg_arr + 14]
 	mov ds, cs:[reg_arr + 16]
 	mov es, cs:[reg_arr + 18]
-	mov ss, cs:[reg_arr + 20]
+;	mov ss, cs:[reg_arr + 20]
 
 	db 0eah						; = jump far
 	OldOffset dw 0				;	on this offset
 	OldSegment dw 0				;	of this segment
 
-;_____________________________________________________________
+;___________________________________________________________________________;
 
-;__PRINTREGS__
+;__PRINTALLREGS__
 ;Printing values of all registers
 ;Entry: all registers
 ;Exit: -
 ;Destr: -
-;_____________________________________________________________
-PrintRegs		proc
+;___________________________________________________________________________;
+PrintAllRegs		proc
 	mov ax, cs:[reg_arr + 0]
-	add bx, 00h
-	call PrintRegVal			;printing ax
+	mov di, FRAME_ADDR
+	xor bx, bx
+	call PrintReg				;printing ax
 
 	mov ax, cs:[reg_arr + 2]
-	add bx, 0A0h
-	call PrintRegVal			;printing bx
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing bx
 
 	mov ax, cs:[reg_arr + 4]
-	add bx, 0A0h
-	call PrintRegVal			;printing cx
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing cx
 
 	mov ax, cs:[reg_arr + 6]
-	add bx, 0A0h
-	call PrintRegVal			;printing dx
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing dx
 
 	mov ax, cs:[reg_arr + 8]
-	add bx, 0A0h
-	call PrintRegVal			;printing si
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing si
 
 	mov ax, cs:[reg_arr + 10]
-	add bx, 0A0h
-	call PrintRegVal			;printing di
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing di
+
+	mov ax, cs:[reg_arr + 12]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing bp
+
+	mov ax, cs:[reg_arr + 14]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing sp
+
+	mov ax, cs:[reg_arr + 16]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing ds
+
+	mov ax, cs:[reg_arr + 18]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing es
+
+	mov ax, cs:[reg_arr + 20]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing ss
 
 	mov ax, cs:[reg_arr + 0]	;recover ax
 	mov bx, cs:[reg_arr + 2]	;recover bx
+	mov di, cs:[reg_arr + 10]	;recover di
 
 	ret
 	endp
-;_____________________________________________________________
+;___________________________________________________________________________;
 
-;__PRINTREGVAL__
+;__PRINTREG__
 ;The function is printing actual value of register, that stored in AX.
-;Its printing at es:[bx].
-;Entry: AX
+;Its printing at es:[di].
+;Entry: AX, BX, CX
 ;Exit: -
 ;Destr: -
-;_____________________________________________________________
-PrintRegVal		proc
+;___________________________________________________________________________;
+PrintReg		proc
 	push ax bx cx dx di
+
+	push ax
+	mov cx, 4				;len("ax = ")
+	mov ah, SYMB_COLOR
+print_phrase:
+	mov al, cs:[reg_phrase + bx]
+	stosw
+	inc bx
+	loop print_phrase
+	pop ax
+
 	mov cx, 4h				;cycle counter = count of regs digits
-	mov di, 10h				;di keeps divider
-	add bx, 2*4h			;address to print from right to left
+	mov bx, 10h				;bx keeps divider
+	add di, 2*4h			;address to print from right to left
 
 printing_reg_val:
 	xor dx, dx
-	div di					;quotient ax (remainder dx)
+	div bx					;quotient ax (remainder dx)
 
 	push ax
 	mov ax, dx
@@ -156,8 +212,8 @@ parse_letter:
 
 go_next:
 	mov ah, SYMB_COLOR
-	mov es:[bx], ax
-	sub bx, 2
+	mov es:[di], ax
+	sub di, 2
 	pop ax
 
 	loop printing_reg_val
@@ -166,10 +222,63 @@ go_next:
 
 	ret
 	endp
-;_____________________________________________________________
+;___________________________________________________________________________;
+
+;__PRINTFRAME__
+;Printing frame with special color and with given size relative to sentence
+;Entry: AH - color of symbols
+;Destr: AL, BX, CX, DX, DI
+;___________________________________________________________________________;
+PrintFrame		proc
+	mov di, FRAME_ADDR
+	sub di, NEIGHB_BY_VERT	;di = address to print (for stosw)
+
+	mov cx, 13				;same as count of regs
+
+build_frame:
+	cmp cx, 13
+	jne not_upper_border
+	mov bx, 0
+	jmp do_next
+not_upper_border:
+
+	cmp cx, 1
+	jne not_lower_border
+	mov bx, 6
+	jmp do_next
+not_lower_border:
+
+	mov bx, 3
+do_next:					;to read symbols from array
+
+	mov al, cs:[frame_symb + bx]
+	mov es:[di-2], ax		;printing the edge of string
+
+	mov al, cs:[frame_symb + bx + 1]
+	push cx					;save cx value for double cycle
+	mov cl, FRAME_WIDTH
+	REP STOSW				;printing the center of string
+	pop cx
+
+	mov al, cs:[frame_symb + bx + 2]
+	mov es:[di], ax			;printing the edge of string
+
+	add di, NEIGHB_BY_VERT
+	sub di, 2 * FRAME_WIDTH	;addressing to the start of next string
+
+	loop build_frame
+
+	ret
+	endp
+;___________________________________________________________________________;
 	endp		;DoUntilProc
 
 reg_arr dw 14 dup(0)
+frame_symb db 	TL_BRDR, HOR_BRDR, TR_BRDR, \
+				VER_BRDR, SPACE, VER_BRDR, \
+				BL_BRDR, HOR_BRDR, BR_BRDR
+reg_phrase db 	'ax = bx = cx = dx = si = di = ', \
+				'bp = sp = ds = es = ss = '
 
 EndOfProgram:
 
