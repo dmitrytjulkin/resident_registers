@@ -60,6 +60,15 @@ DoUntilEscape	proc
 	mov cs:[reg_arr + 18], es
 	mov cs:[reg_arr + 20], ss
 
+	pop ax bx cx
+	push cx bx ax					;ax = ip, bx = cs, cx = flags
+
+	mov cs:[reg_arr + 22], bx
+	mov cs:[reg_arr + 24], ax
+	mov cs:[reg_arr + 26], cx
+
+	xor cx, cx
+
 	mov ax, VIDEOSEG
 	mov es, ax
 	mov bx, FRAME_ADDR			;set address to start printing
@@ -161,6 +170,21 @@ PrintAllRegs		proc
 	add di, NEIGHB_BY_VERT
 	add bx, 5
 	call PrintReg				;printing ss
+
+	mov ax, cs:[reg_arr + 22]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing cs
+
+	mov ax, cs:[reg_arr + 24]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing ip
+
+	mov ax, cs:[reg_arr + 26]
+	add di, NEIGHB_BY_VERT
+	add bx, 5
+	call PrintReg				;printing flags
 
 	mov ax, cs:[reg_arr + 0]	;recover ax
 	mov bx, cs:[reg_arr + 2]	;recover bx
@@ -272,12 +296,12 @@ do_next:					;to read symbols from array
 ;___________________________________________________________________________;
 	endp		;DoUntilProc
 
-reg_arr dw 14 dup(0)
+reg_arr dw 15 dup(0)
 frame_symb db 	TL_BRDR, HOR_BRDR, TR_BRDR, \
 				VER_BRDR, SPACE, VER_BRDR, \
 				BL_BRDR, HOR_BRDR, BR_BRDR
 reg_phrase db 	'ax = bx = cx = dx = si = di = ', \
-				'bp = sp = ds = es = ss = '
+				'bp = sp = ds = es = ss = cs = ip = fl = '
 
 EndOfProgram:
 
