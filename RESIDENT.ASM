@@ -7,7 +7,8 @@ FRAME_ADDR	equ 80h*5 + 40h
 SYMB_COLOR	equ 070h			;= black on white
 SCAN_CODE	equ 00Fh			;= tab
 NEIGHB_BY_VERT	equ 0A0h
-FRAME_WIDTH	equ 009h
+FRAME_WIDTH	equ 00Ah
+REGS_COUNT	equ 0Dh
 
 HOR_BRDR 	equ 0CDh
 VER_BRDR	equ 0BAh
@@ -58,9 +59,6 @@ DoUntilEscape	proc
 	mov cs:[reg_arr + 16], ds
 	mov cs:[reg_arr + 18], es
 	mov cs:[reg_arr + 20], ss
-;	mov cs:[reg_arr + 22], cs
-;	mov cs:[reg_arr + 24], ip	;//TODO idea to add flags
-
 
 	mov ax, VIDEOSEG
 	mov es, ax
@@ -91,10 +89,10 @@ skip_printing:
 	mov si, cs:[reg_arr + 8]
 	mov di, cs:[reg_arr + 10]
 	mov bp, cs:[reg_arr + 12]
-;	mov sp, cs:[reg_arr + 14]
+	mov sp, cs:[reg_arr + 14]
 	mov ds, cs:[reg_arr + 16]
 	mov es, cs:[reg_arr + 18]
-;	mov ss, cs:[reg_arr + 20]
+	mov ss, cs:[reg_arr + 20]
 
 	db 0eah						; = jump far
 	OldOffset dw 0				;	on this offset
@@ -219,7 +217,6 @@ go_next:
 
 	loop printing_reg_val
 
-<<<<<<< HEAD
 	pop di dx cx bx ax
 
 	ret
@@ -235,10 +232,10 @@ PrintFrame		proc
 	mov di, FRAME_ADDR
 	sub di, NEIGHB_BY_VERT	;di = address to print (for stosw)
 
-	mov cx, 13				;same as count of regs
+	mov cx, REGS_COUNT + 2				;same as count of regs
 
 build_frame:
-	cmp cx, 13
+	cmp cx, REGS_COUNT + 2
 	jne not_upper_border
 	mov bx, 0
 	jmp do_next
