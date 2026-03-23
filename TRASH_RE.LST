@@ -1,0 +1,62 @@
+Turbo Assembler	 Version 4.1	    03/23/26 20:11:46	    Page 1
+trash_re.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3				     org 100h
+      4
+      5	0100			     Start:
+      6	0100  50 55 8B EC C7 46	02+	 push 1111
+      7	      0457 5D
+      8	010A  58			 pop ax
+      9
+     10	010B  50 55 8B EC C7 46	02+	 push 2222
+     11	      08AE 5D
+     12	0115  5B			 pop bx
+     13
+     14	0116  50 55 8B EC C7 46	02+	 push 3333
+     15	      0D05 5D
+     16	0120  59			 pop cx
+     17
+     18	0121  50 55 8B EC C7 46	02+	 push 4444
+     19	      115C 5D
+     20	012B  5A			 pop dx
+     21
+     22	012C  B8 4C00			 mov ax, 4c00h
+     23	012F  CD 21			 int 21h	 ;the end
+     24
+     25				     end     Start
+Turbo Assembler	 Version 4.1	    03/23/26 20:11:46	    Page 2
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/23/26"
+??FILENAME			  Text	 "trash_re"
+??TIME				  Text	 "20:11:46"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 TRASH_RE
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+START				  Near	 DGROUP:0100
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  0131 Word	  Public  CODE
+

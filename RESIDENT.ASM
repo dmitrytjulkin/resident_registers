@@ -240,7 +240,6 @@ go_next:
 	loop printing_reg_val
 
 	pop di dx bx ax
-
 	ret
 	endp
 ;___________________________________________________________________________;
@@ -257,7 +256,7 @@ PrintFlags		proc
 	mov cx, FLAGS_COUNT
 
 printing_flags:
-
+	mov ah, SYMB_COLOR
 	push ax cx
 	mov cx, 4				;length of phrase
 printing_flag_phrase:
@@ -267,15 +266,22 @@ printing_flag_phrase:
 	loop printing_flag_phrase
 	pop cx ax
 
-;	mov dx, 2
-;	div dx					;dx = ax (mod 2)
+	push bx
+	xor ah, ah
+	xor dx, dx
+	mov bx, 2h
+	div bx					;dx = ax (mod 2)
+	pop bx
+
+	add dx, '0'
+	mov ax, dx
+	mov ah, SYMB_COLOR
+	mov es:[di], ax
 
 	sub di, NEIGHB_BY_VERT + 4h * 2
-
 	loop printing_flags
 
 	pop di
-
 	ret
 	endp
 ;___________________________________________________________________________;
