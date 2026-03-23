@@ -19,6 +19,7 @@ SPACE		equ 020h
 
 Start:
 	mov ax, 3509h				;es:bx = address of int handler
+
 	int 21h
 
 	mov OldOffset, bx
@@ -218,6 +219,7 @@ go_next:
 
 	loop printing_reg_val
 
+<<<<<<< HEAD
 	pop di dx cx bx ax
 
 	ret
