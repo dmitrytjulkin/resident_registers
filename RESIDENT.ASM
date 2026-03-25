@@ -5,7 +5,8 @@ org 100h
 VIDEOSEG	equ 0b800h
 FRAME_ADDR	equ 80h*5 + 40h
 SYMB_COLOR	equ 070h			;= black on white
-SCAN_CODE	equ 00Fh			;= tab
+CODE_PRINT_REG	equ 0Fh			;= tab
+CODE_FINISH		equ 01h			;= esc
 NEIGHB_BY_VERT equ 0A0h
 FRAME_WIDTH	equ 010h
 
@@ -21,23 +22,44 @@ BR_BRDR		equ 0BCh
 SPACE		equ 020h
 
 Start:
+;	--Keyboard handler--
 	mov ax, 3509h				;es:bx = address of int handler
-
 	int 21h
 
-	mov OldOffset, bx
-	mov OldSegment, es			;save es:bx as variables
+	mov OldOffsetKbrd, bx
+	mov OldSegmentKbrd, es			;save es:bx as variables
 
 	push 0
 	pop es						;es = 0
 
 	cli									;disables maskable interrupts
 	mov bx, 09h * 4						;	to forbid
-	mov es:[bx], offset DoUntilEscape	;pass control to another handler
+	mov es:[bx], offset KeyboardHandler	;pass control to another handler
 
 	mov ax, cs
 	mov es:[bx+2], ax
 	sti									;enable maskable interrupts
+
+;	--Timer handler--
+
+	mov ax, 351Ch
+	int 21h
+
+	mov OldOffsetTmr, bx
+	mov OldSegmentTmr, es
+
+	push 0
+	pop es						;es = 0
+
+	cli									;disables maskable interrupts
+	mov bx, 1Ch * 4						;	to forbid
+	mov es:[bx], offset TimerHandler	;pass control to another handler
+
+	mov ax, cs
+	mov es:[bx+2], ax
+	sti									;enable maskable interrupts
+
+;	--Ending--
 
 	mov ax, 3100h				;end the program with leaving
 								;	memory size to keep resident
@@ -49,7 +71,7 @@ Start:
 
 	int 21h
 
-DoUntilEscape	proc
+KeyboardHandler	proc
 	mov cs:[reg_arr + 0], ax
 	mov cs:[reg_arr + 2], bx
 	mov cs:[reg_arr + 4], cx
@@ -76,8 +98,12 @@ DoUntilEscape	proc
 	mov bx, FRAME_ADDR			;set address to start printing
 
 	in al, 60h
+	cmp al, CODE_FINISH
+	jne not_escape
+	mov cs:exit_flag, 1			;if desire to escape
+not_escape:
 
-	cmp al, SCAN_CODE
+	cmp al, CODE_PRINT_REG
 	jne skip_printing
 
 	mov ah, SYMB_COLOR
@@ -105,9 +131,26 @@ skip_printing:
 	mov es, cs:[reg_arr + 18]
 	mov ss, cs:[reg_arr + 20]	;recovery of registers
 
-	db 0eah						; = jump far
-	OldOffset dw 0				;	on this offset
-	OldSegment dw 0				;	of this segment
+	endp		;KeyboardHandler
+
+TimerHandler	proc
+	cmp cs:exit_flag, 1
+	jne continue
+
+	cli
+    mov ax, 2509h				;set old handler
+    lds dx, cs:OldOffsetKbrd	;loading ds and dx as address of old handler
+    int 21h
+
+    ; Восстанавливаем INT 1Ch
+    mov ax, 251Ch
+    lds dx, cs:OldOffsetTmr
+    int 21h
+	sti
+
+continue:
+	iret
+	endp		;TimerHandler
 
 ;___________________________________________________________________________;
 
@@ -333,15 +376,20 @@ do_next:					;to read symbols from array
 	ret
 	endp
 ;___________________________________________________________________________;
-	endp		;DoUntilProc
 
-reg_arr dw 15 dup(0)
-frame_symb db 	TL_BRDR, HOR_BRDR, TR_BRDR, \
+exit_flag		db 0
+OldOffsetKbrd	dw ?
+OldSegmentKbrd	dw ?
+OldOffsetTmr	dw ?
+OldSegmentTmr	dw ?
+
+reg_arr 	dw 15 dup(0)
+frame_symb	db 	TL_BRDR, HOR_BRDR, TR_BRDR, \
 				VER_BRDR, SPACE, VER_BRDR, \
 				BL_BRDR, HOR_BRDR, BR_BRDR
-reg_phrase db 	'ax = bx = cx = dx = si = di = ', \
+reg_phrase	db 	'ax = bx = cx = dx = si = di = ', \
 				'bp = sp = ds = es = ss = cs = ip = fl = '
-flag_phrase db	'd = i = a = p = o = s = z = c = '
+flag_phrase	db	'd = i = a = p = o = s = z = c = '
 
 EndOfProgram:
 
