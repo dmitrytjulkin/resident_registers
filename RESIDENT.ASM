@@ -5,7 +5,7 @@ org 100h
 VIDEOSEG	equ 0b800h
 FRAME_ADDR	equ 80h*5 + 40h
 SYMB_COLOR	equ 070h			;= black on white
-CODE_PRINT_REG	equ 0Fh			;= tab
+CODE_PRINT_REG	equ 02h			;= space
 CODE_FINISH		equ 01h			;= esc
 NEIGHB_BY_VERT equ 0A0h
 FRAME_WIDTH	equ 010h
@@ -42,7 +42,7 @@ Start:
 
 ;	--Timer handler--
 
-	mov ax, 351Ch
+	mov ax, 3508h
 	int 21h
 
 	mov OldOffsetTmr, bx
@@ -52,7 +52,7 @@ Start:
 	pop es						;es = 0
 
 	cli									;disables maskable interrupts
-	mov bx, 1Ch * 4						;	to forbid
+	mov bx, 8h * 4						;	to forbid
 	mov es:[bx], offset TimerHandler	;pass control to another handler
 
 	mov ax, cs
@@ -70,8 +70,37 @@ Start:
 	add dx, 10h
 
 	int 21h
+;___________________________________________________________________________;
 
 KeyboardHandler	proc
+
+	in al, 60h
+;	cmp al, CODE_FINISH
+;	jne not_escape
+;	mov cs:exit_flag, 1			;if desire to escape
+;not_escape:
+
+	cmp al, CODE_PRINT_REG
+	jne skip_printing_kbrd
+	mov cs:print_flag, 1
+skip_printing_kbrd:
+
+	or al, 80h
+	out 61h, al
+	and al, not 80h				;"blink" by 7th bit of 61th port
+	out 61h, al					;	to enable/disable keyboard
+
+	mov al, 20h
+	out 20h, al					;out to Interrupt controller
+
+	db 0eah
+	OldOffsetKbrd dw 0
+	OldSegmentKbrd dw 0
+
+	endp
+;___________________________________________________________________________;
+
+TimerHandler	proc
 	mov cs:[reg_arr + 0], ax
 	mov cs:[reg_arr + 2], bx
 	mov cs:[reg_arr + 4], cx
@@ -85,39 +114,28 @@ KeyboardHandler	proc
 	mov cs:[reg_arr + 20], ss
 
 	pop ax bx cx
-	push cx bx ax					;ax = ip, bx = cs, cx = flags
+	push cx bx ax				;ax = ip, bx = cs, cx = flags
 
 	mov cs:[reg_arr + 22], bx
 	mov cs:[reg_arr + 24], ax
 	mov cs:[reg_arr + 26], cx
 
-	xor cx, cx
+;	cmp cs:exit_flag, 1
+;	jne skip_printing_tmr
 
+	cmp cs:print_flag, 1
+	jne skip_printing_tmr
+
+	xor cx, cx
 	mov ax, VIDEOSEG
 	mov es, ax
 	mov bx, FRAME_ADDR			;set address to start printing
-
-	in al, 60h
-	cmp al, CODE_FINISH
-	jne not_escape
-	mov cs:exit_flag, 1			;if desire to escape
-not_escape:
-
-	cmp al, CODE_PRINT_REG
-	jne skip_printing
-
 	mov ah, SYMB_COLOR
+
 	call PrintFrame
 	call PrintRegsNFlags		;printing regs value
 
-skip_printing:
-	or al, 80h
-	out 61h, al
-	and al, not 80h				;"blink" by 7th bit of 61th port
-	out 61h, al					;	to enable/disable keyboard
-
-	mov al, 20h
-	out 20h, al					;out to Interrupt controller
+skip_printing_tmr:
 
 	mov ax, cs:[reg_arr + 0]
 	mov bx, cs:[reg_arr + 2]
@@ -131,27 +149,11 @@ skip_printing:
 	mov es, cs:[reg_arr + 18]
 	mov ss, cs:[reg_arr + 20]	;recovery of registers
 
-	endp		;KeyboardHandler
+	db 0eah
+	OldOffsetTmr dw 0
+	OldSegmentTmr dw 0
 
-TimerHandler	proc
-	cmp cs:exit_flag, 1
-	jne continue
-
-	cli
-    mov ax, 2509h				;set old handler
-    lds dx, cs:OldOffsetKbrd	;loading ds and dx as address of old handler
-    int 21h
-
-    ; Восстанавливаем INT 1Ch
-    mov ax, 251Ch
-    lds dx, cs:OldOffsetTmr
-    int 21h
-	sti
-
-continue:
-	iret
-	endp		;TimerHandler
-
+	endp
 ;___________________________________________________________________________;
 
 ;__PRINTREGSNFLAGS__
@@ -377,11 +379,8 @@ do_next:					;to read symbols from array
 	endp
 ;___________________________________________________________________________;
 
-exit_flag		db 0
-OldOffsetKbrd	dw ?
-OldSegmentKbrd	dw ?
-OldOffsetTmr	dw ?
-OldSegmentTmr	dw ?
+print_flag	db 0
+exit_flag	db 0
 
 reg_arr 	dw 15 dup(0)
 frame_symb	db 	TL_BRDR, HOR_BRDR, TR_BRDR, \
