@@ -5,8 +5,8 @@ org 100h
 VIDEOSEG	equ 0b800h
 FRAME_ADDR	equ 80h*5 + 40h
 SYMB_COLOR	equ 070h			;= black on white
-CODE_PRINT_REG	equ 02h			;= space
-CODE_FINISH		equ 01h			;= esc
+CODE_PRINT_REG	equ 02h			;= 1
+CODE_FINISH		equ 03h			;= 2
 NEIGHB_BY_VERT equ 0A0h
 FRAME_WIDTH	equ 010h
 
@@ -75,13 +75,15 @@ Start:
 KeyboardHandler	proc
 
 	in al, 60h
-;	cmp al, CODE_FINISH
-;	jne not_escape
-;	mov cs:exit_flag, 1			;if desire to escape
-;not_escape:
+
+	cmp al, CODE_FINISH
+	jne not_escape
+	mov cs:exit_flag, 1			;if desire to escape
+not_escape:
 
 	cmp al, CODE_PRINT_REG
 	jne skip_printing_kbrd
+	mov cs:exit_flag, 0
 	mov cs:print_flag, 1
 skip_printing_kbrd:
 
@@ -118,19 +120,19 @@ TimerHandler	proc
 
 	mov cs:[reg_arr + 22], bx
 	mov cs:[reg_arr + 24], ax
-	mov cs:[reg_arr + 26], cx
-
-;	cmp cs:exit_flag, 1
-;	jne skip_printing_tmr
+	mov cs:[reg_arr + 26], cx	;saving regs and flags values
 
 	cmp cs:print_flag, 1
 	jne skip_printing_tmr
+
+	cmp cs:exit_flag, 1
+	je skip_printing_tmr
 
 	xor cx, cx
 	mov ax, VIDEOSEG
 	mov es, ax
 	mov bx, FRAME_ADDR			;set address to start printing
-	mov ah, SYMB_COLOR
+	mov ah, SYMB_COLOR			;set color of text
 
 	call PrintFrame
 	call PrintRegsNFlags		;printing regs value

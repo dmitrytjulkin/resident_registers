@@ -1,4 +1,4 @@
-Turbo Assembler	 Version 4.1	    03/23/26 20:11:46	    Page 1
+Turbo Assembler	 Version 4.1	    06/29/26 16:34:43	    Page 1
 trash_re.asm
 
 
@@ -28,7 +28,7 @@ trash_re.asm
      23	012F  CD 21			 int 21h	 ;the end
      24
      25				     end     Start
-Turbo Assembler	 Version 4.1	    03/23/26 20:11:46	    Page 2
+Turbo Assembler	 Version 4.1	    06/29/26 16:34:43	    Page 2
 Symbol Table
 
 
@@ -36,9 +36,9 @@ Symbol Table
 
 Symbol Name			  Type	 Value
 
-??DATE				  Text	 "03/23/26"
+??DATE				  Text	 "06/29/26"
 ??FILENAME			  Text	 "trash_re"
-??TIME				  Text	 "20:11:46"
+??TIME				  Text	 "16:34:43"
 ??VERSION			  Number 040A
 @32BIT				  Text	 0
 @CODE				  Text	 DGROUP
